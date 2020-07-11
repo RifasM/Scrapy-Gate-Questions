@@ -19,9 +19,11 @@ class GateSpider(scrapy.Spider):
         for link in anchor:
             link = self.start_urls[0] + link
             if re.match(self.interesting_url, str(link)):
-                print(">>> Link found!\n\tAppending")
+                # print(">>> Link found!\n\tAppending")
                 # self.links.append(link)
-                yield link
+                yield {
+                    "link": link
+                }
 
         for next_page in anchor:
             yield response.follow(self.start_urls[0] + next_page, self.parse)
