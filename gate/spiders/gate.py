@@ -12,7 +12,7 @@ class GateSpider(scrapy.Spider):
                                  "/past-years/gate/"
                                  "question/[\\w-]+.htm")
 
-    links = []
+    # links = []
 
     def parse(self, response):
         anchor = response.css("a::attr(href)").getall()
@@ -20,11 +20,12 @@ class GateSpider(scrapy.Spider):
             link = self.start_urls[0] + link
             if re.match(self.interesting_url, str(link)):
                 print(">>> Link found!\n\tAppending")
-                self.links.append(link)
+                # self.links.append(link)
+                yield link
 
         for next_page in anchor:
             yield response.follow(self.start_urls[0] + next_page, self.parse)
 
 
-# TODO: Implement Callback  
+# TODO: Implement Callback
 #  Reference https://github.com/scrapy/booksbot/blob/master/books/spiders/books.py
