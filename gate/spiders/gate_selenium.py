@@ -18,13 +18,12 @@ class GateSelenium:
             self.driver.find_element_by_css_selector("div.question-actions.text-center > button").click()
 
             answer = self.driver.find_element_by_css_selector("div.pa-8.text-center>b").text
-            options = self.driver.find_elements_by_css_selector("div.option-item.flex.ripple.flex-middle-xs>div.pa-4>span.mjx-chtml MathJax_CHTML")
+            options = self.driver.find_elements_by_css_selector("div.option-item.flex.ripple.flex-middle-xs>div.pa-4>span.mjx-chtml.MathJax_CHTML")
             options = [option.get_attribute("innerHTML") for option in options]
 
-            if answer is None:
-                # options = None
-
-                answer = self.driver.find_element_by_css_selector("div.overlay.correct").parent
+            if answer is "":
+                answer = self.driver.find_element_by_css_selector(
+                    "div.overlay.correct").find_element_by_xpath("..").find_element_by_css_selector("div.ma-4.flex.flex-center-xs.flex-middle-xs.primary-color-bg.green-500-bg").text
 
             scraped_data = {
                 "question_meta": meta,
@@ -55,7 +54,10 @@ if __name__ == "__main__":
                  "source-a-gate-ece-2016-set-2-marks-1" \
                  "-5a05775344abf.htm"
 
-    # data = gate_instance.scrape_question(question_url=no_option_url)
-    data = gate_instance.scrape_question(question_url=option_url)
+    print("Selenium on question with no Options")
+    data = gate_instance.scrape_question(question_url=no_option_url)
+    print(data)
 
+    print("Selenium on question with Options")
+    data = gate_instance.scrape_question(question_url=option_url)
     print(data)
