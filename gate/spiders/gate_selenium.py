@@ -8,7 +8,7 @@ class GateSelenium:
               'diagram', 'answer', 'options']
 
     def __init__(self):
-        self.driver = webdriver.Chrome(os.environ["WEB_DRIVER_PATH"])
+        self.driver = webdriver.Chrome()
 
     @staticmethod
     def print_url(question_url):
