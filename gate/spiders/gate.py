@@ -1,5 +1,8 @@
 import urllib
 import os
+import signal
+from datetime import datetime
+
 import scrapy
 import re
 from gate.spiders.gate_selenium import GateSelenium
@@ -62,9 +65,29 @@ class GateSpider(scrapy.Spider):
             link = questions.css("div.text-right.pa-4>a::attr(href)").extract_first()
             link = response.urljoin(link)
             if re.match(self.interesting_url, str(link)):
-                print(">>> Matched\n\tRunning!!")
                 data = self.selenium_instance.scrape_question(link)
+
+                if not data:
+                    print("Error in Scraping through Selenium on link", link)
+                    print(">> Dumping Current Data to log.")
+
+                    with open("data_at-" + datetime.today().strftime("%Y_%m_%d_%H_%M_%S") + ".txt", "w") as dump_file:
+                        data = {
+                            "branch": branch,
+                            "topic": topic,
+                            "sub_topic_name": sub_topic[0],
+                            "questions": links
+                        }
+                        dump_file.write(str(data))
+
+                    os.kill(os.getpid(), signal.SIGINT)
+
+                print(">>> Matched\n\tRunning!!")
                 links.append(data)
+
+        if len(links) == 0:
+            print("ERROR!! No questions on link: ", response.urljoin())
+            os.kill(os.getpid(), signal.SIGINT)
 
         print("\t\t>>> Completed\n\tSending!!")
         data = {

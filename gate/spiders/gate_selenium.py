@@ -11,6 +11,11 @@ class GateSelenium:
     def __init__(self):
         options = Options()
         options.headless = True
+
+        # Normal Start
+        # self.driver = webdriver.Chrome()
+
+        # Headless Start
         self.driver = webdriver.Chrome(options=options)
 
     @staticmethod
@@ -55,11 +60,14 @@ class GateSelenium:
             self.print_url(question_url)
             exit(0)
 
-        # time.sleep(2)
+        time.sleep(0.5)
 
         try:
-            answer = self.driver.find_element_by_css_selector("div.pa-8.text-center>b").text
-            if answer == "":
+            try:
+                answer = self.driver.find_element_by_css_selector("div.pa-8.text-center>b").text
+            except Exception:
+                answer = self.driver.find_element_by_css_selector("div.question-solution-container>div.pa-8").text
+            if answer == "" or answer is None:
                 raise Exception
             print("Subjective Answer Found")
             subjective = True
@@ -73,7 +81,7 @@ class GateSelenium:
             except Exception as e:
                 print("WARNING!! Answer Could not be Obtained", e)
                 self.print_url(question_url)
-                exit(0)
+                return False
 
         if not subjective:
             top = self.driver.find_element_by_css_selector(
@@ -145,6 +153,12 @@ if __name__ == "__main__":
                       "the-followi-gate-cse-2014-set-3-marks-1-" \
                       "mzuuovj1fgknvxkg.htm"
 
+    case_1_option_url = "https://questions.examside.com/" \
+                        "past-years/gate/question/" \
+                        "a-square-waveform-as-shown-in-the-figure-is-" \
+                        "applied-across-1-gate-ece-1987-marks-2-" \
+                        "5a021c95a2098.htm"
+
     print("Selenium on question with no Options")
     data = gate_instance.scrape_question(question_url=no_option_url)
     print(data)
@@ -159,4 +173,8 @@ if __name__ == "__main__":
 
     print("Selenium on question with Text Options")
     data = gate_instance.scrape_question(question_url=text_option_url)
+    print(data)
+
+    print("Selenium on question with Case 1 Options")
+    data = gate_instance.scrape_question(question_url=case_1_option_url)
     print(data)
