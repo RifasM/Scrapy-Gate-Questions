@@ -1,6 +1,7 @@
 import time
 import os
 from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 
 
 class GateSelenium:
@@ -8,7 +9,9 @@ class GateSelenium:
               'diagram', 'answer', 'options']
 
     def __init__(self):
-        self.driver = webdriver.Chrome()
+	options = Options()
+	options.headless = True
+        self.driver = webdriver.Chrome(options=options)
 
     @staticmethod
     def print_url(question_url):
