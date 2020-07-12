@@ -56,7 +56,7 @@ class GateSelenium:
 
         try:
             answer = self.driver.find_element_by_css_selector("div.pa-8.text-center>b").text
-            if answer is "":
+            if answer == "":
                 raise Exception
             print("Subjective Answer Found")
             subjective = True
