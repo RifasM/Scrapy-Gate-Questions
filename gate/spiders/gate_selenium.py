@@ -1,5 +1,5 @@
 import time
-
+import os
 from selenium import webdriver
 
 
@@ -8,7 +8,7 @@ class GateSelenium:
               'diagram', 'answer', 'options']
 
     def __init__(self):
-        self.driver = webdriver.Chrome("chromedriver.exe")
+        self.driver = webdriver.Chrome(os.environ["WEB_DRIVER_PATH"])
 
     @staticmethod
     def print_url(question_url):

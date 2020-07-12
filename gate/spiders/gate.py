@@ -1,5 +1,9 @@
+import urllib
+import os
 import scrapy
 import re
+from gate.spiders.gate_selenium import GateSelenium
+import pymongo
 
 
 class GateSpider(scrapy.Spider):
@@ -12,12 +16,17 @@ class GateSpider(scrapy.Spider):
                                  "/past-years/gate/"
                                  "question/[\\w-]+.htm")
 
-    branch = ""
-    question_links = []
+    selenium_instance = GateSelenium()
+
+    client = pymongo.MongoClient(
+        "mongodb+srv://"+os.environ["MONGO_USER"]+":"
+        + urllib.parse.quote_plus(os.environ["MONGO_PASSWORD"]) +
+        "@"+os.environ["MONGO_HOST"]+"/gate?retryWrites=true&w=majority")
+    db = client.gate
 
     def parse(self, response):
         for course in response.css("div.pa-8-top"):
-            branch = course.css("div.text-center.pa-4.ma-4-top-bottom::text").\
+            branch = course.css("div.text-center.pa-4.ma-4-top-bottom::text"). \
                 extract_first()
             link = course.css(
                 "a.no-link.text-bold.pa-8-top-bottom.purple-600.flex-col-xs-6."
@@ -53,12 +62,15 @@ class GateSpider(scrapy.Spider):
             link = questions.css("div.text-right.pa-4>a::attr(href)").extract_first()
             link = response.urljoin(link)
             if re.match(self.interesting_url, str(link)):
-                # print(">>> Matched\n\tAppending")
-                links.append(link)
+                print(">>> Matched\n\tRunning!!")
+                data = self.selenium_instance.scrape_question(link)
+                links.append(data)
 
-        yield {
+        print("\t\t>>> Completed\n\tSending!!")
+        data = {
             "branch": branch,
             "topic": topic,
             "sub_topic_name": sub_topic[0],
             "questions": links
         }
+        self.db.questions.insert_one(data)
