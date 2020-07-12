@@ -52,7 +52,7 @@ class GateSelenium:
             self.print_url(question_url)
             exit(0)
 
-        time.sleep(2)
+        # time.sleep(2)
 
         try:
             answer = self.driver.find_element_by_css_selector("div.pa-8.text-center>b").text
