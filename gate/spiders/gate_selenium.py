@@ -9,8 +9,8 @@ class GateSelenium:
               'diagram', 'answer', 'options']
 
     def __init__(self):
-	options = Options()
-	options.headless = True
+        options = Options()
+        options.headless = True
         self.driver = webdriver.Chrome(options=options)
 
     @staticmethod
