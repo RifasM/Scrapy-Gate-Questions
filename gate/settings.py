@@ -12,6 +12,8 @@ BOT_NAME = 'gate'
 SPIDER_MODULES = ['gate.spiders']
 NEWSPIDER_MODULE = 'gate.spiders'
 
+# For pausing when 429 Received
+RETRY_HTTP_CODES = [429]
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = 'gate (+http://www.yourdomain.com)'
@@ -44,9 +46,10 @@ ROBOTSTXT_OBEY = True
 
 # Enable or disable spider middlewares
 # See https://docs.scrapy.org/en/latest/topics/spider-middleware.html
-#SPIDER_MIDDLEWARES = {
-#    'gate.middlewares.GateSpiderMiddleware': 543,
-#}
+SPIDER_MIDDLEWARES = {
+    'scrapy.downloadermiddlewares.retry.RetryMiddleware': None,
+    'gate.middlewares.TooManyRequestsRetryMiddleware': 543,
+}
 
 # Enable or disable downloader middlewares
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html

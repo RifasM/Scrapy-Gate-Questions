@@ -96,7 +96,8 @@ class GateSpider(scrapy.Spider):
                         "sub_topic_name": sub_topic[0],
                         "questions": links
                     }
-                    self.root.exception("Data Scrape Failed on " + str(link) + "\nData: "+str(data))
+                    self.db.fallback.insert_one(data)
+                    self.root.exception("Data Scrape Failed on " + str(link) + "\nData sent to fallback")
 
                     exit(1)
 
