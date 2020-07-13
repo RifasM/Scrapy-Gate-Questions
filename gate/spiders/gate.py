@@ -1,9 +1,10 @@
 import time
 import urllib
 import os
-import signal
-from datetime import datetime
 
+from datetime import datetime
+import logging
+import logging.handlers
 import scrapy
 import re
 from gate.spiders.gate_selenium import GateSelenium
@@ -16,7 +17,7 @@ class GateSpider(scrapy.Spider):
     start_urls = []
 
     def __init__(self, *args, **kwargs):
-        super().__init__(self, *args, **kwargs)
+        # super().__init__(self, *args, **kwargs)
         self.allowed_domains.append('questions.examside.com')
         self.start_urls.append("https://questions.examside.com")
 
@@ -31,6 +32,21 @@ class GateSpider(scrapy.Spider):
             + urllib.parse.quote_plus(os.environ["MONGO_PASSWORD"]) +
             "@" + os.environ["MONGO_HOST"] + "/gate?retryWrites=true&w=majority")
         self.db = client.gate
+
+        if not os.path.isdir("logs"):
+            os.mkdir("logs")
+            os.mkdir("logs/scrapy")
+            os.mkdir("logs/selenium")
+
+        handler = logging.handlers.WatchedFileHandler(
+            os.environ.get("LOGFILE", "logs/scrapy/gate-scraper-at-" +
+                           datetime.now().strftime("%Y-%m-%d %H-%M-%S") +
+                           ".log"))
+        formatter = logging.Formatter(logging.BASIC_FORMAT)
+        handler.setFormatter(formatter)
+        self.root = logging.getLogger("gate-logger")
+        self.root.setLevel(os.environ.get("LOGLEVEL", "INFO"))
+        self.root.addHandler(handler)
 
     def parse(self, response):
         for course in response.css("div.pa-8-top"):
@@ -69,30 +85,27 @@ class GateSpider(scrapy.Spider):
                 "flex-col-4.flex-col-lg-4.flex-col-xlg-4>div"):
             link = questions.css("div.text-right.pa-4>a::attr(href)").extract_first()
             link = response.urljoin(link)
+
             if re.match(self.interesting_url, str(link)):
                 data = self.selenium_instance.scrape_question(link)
 
                 if not data:
-                    print("Error in Scraping through Selenium on link", link)
-                    print(">> Dumping Current Data to log.")
+                    data = {
+                        "branch": branch,
+                        "topic": topic,
+                        "sub_topic_name": sub_topic[0],
+                        "questions": links
+                    }
+                    self.root.exception("Data Scrape Failed on " + str(link) + "\nData: "+str(data))
 
-                    with open("data_at-" + datetime.today().strftime("%Y_%m_%d_%H_%M_%S") + ".txt", "w") as dump_file:
-                        data = {
-                            "branch": branch,
-                            "topic": topic,
-                            "sub_topic_name": sub_topic[0],
-                            "questions": links
-                        }
-                        dump_file.write(str(data))
-
-                    os.kill(os.getpid(), signal.SIGINT)
+                    exit(1)
 
                 print(">>> Matched\n\tRunning!!")
                 links.append(data)
 
         if len(links) == 0:
-            print("ERROR!! No questions on link: ", response.urljoin())
-            os.kill(os.getpid(), signal.SIGINT)
+            self.root.error("ERROR! No questions on link: "+str(response.urljoin()))
+            exit(1)
 
         print("\t\t>>> Completed\n\tSending!!")
         data = {
@@ -102,4 +115,4 @@ class GateSpider(scrapy.Spider):
             "questions": links
         }
         self.db.questions.insert_one(data)
-        time.sleep(1)
+        # time.sleep(1)

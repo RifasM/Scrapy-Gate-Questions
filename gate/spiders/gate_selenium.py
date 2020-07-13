@@ -3,6 +3,10 @@ import os
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
+import logging
+import logging.handlers
+from datetime import datetime
+
 
 class GateSelenium:
     fields = ['question_meta', 'question',
@@ -18,9 +22,20 @@ class GateSelenium:
         # Headless Start
         self.driver = webdriver.Chrome(options=options)
 
-    @staticmethod
-    def print_url(question_url):
-        print("\tURL:", question_url)
+        if not os.path.isdir("logs"):
+            os.mkdir("logs")
+            os.mkdir("logs/scrapy")
+            os.mkdir("logs/selenium")
+
+        handler = logging.handlers.WatchedFileHandler(
+            os.environ.get("LOGFILE", "logs/selenium/gate-selenium-at-" +
+                           datetime.now().strftime("%Y-%m-%d %H-%M-%S") +
+                           ".log"))
+        formatter = logging.Formatter(logging.BASIC_FORMAT)
+        handler.setFormatter(formatter)
+        self.root = logging.getLogger("selenium-logger")
+        self.root.setLevel(os.environ.get("LOGLEVEL", "INFO"))
+        self.root.addHandler(handler)
 
     def scrape_question(self, question_url):
         self.driver.get(question_url)
@@ -35,16 +50,14 @@ class GateSelenium:
         try:
             meta = self.driver.find_element_by_css_selector("div.question-body > h3").text
         except Exception as e:
-            print("Meta Not Found", e)
-            self.print_url(question_url)
+            self.root.exception("Meta not Found for: " + str(question_url) + "\nCause: " + str(e))
             meta = None
 
         try:
             question = self.driver.find_element_by_css_selector("div.question-body > div").get_attribute("innerHTML")
         except Exception as e:
-            print("WARNING!! Question not Scraped", e)
-            self.print_url(question_url)
-            exit(0)
+            self.root.error("Questions Could Not be scraped at:" + str(question_url) + "\nCause:" + str(e))
+            return False
 
         """try:
             diagram = self.driver.find_element_by_css_selector("div.question-body > div > img").get_attribute("src")
@@ -56,9 +69,8 @@ class GateSelenium:
         try:
             self.driver.find_element_by_css_selector("div.question-actions.text-center > button").click()
         except Exception as e:
-            print("WARNING!! Button Could not be clicked", e)
-            self.print_url(question_url)
-            exit(0)
+            self.root.error("Button Could Not be clicked at:" + str(question_url) + "\nCause:" + str(e))
+            return False
 
         time.sleep(0.5)
 
@@ -69,57 +81,56 @@ class GateSelenium:
                 answer = self.driver.find_element_by_css_selector("div.question-solution-container>div.pa-8").text
             if answer == "" or answer is None:
                 raise Exception
-            print("Subjective Answer Found")
+            self.root.log(logging.INFO, "Subjective Answer Found for " + str(question_url))
             subjective = True
         except Exception as e:
             try:
-                print("Subjective Answer Not found", e)
+                self.root.log(logging.INFO,
+                              "Subjective Answer  Not Found for " + str(question_url) + "\nCause: " + str(e))
                 answer = self.driver.find_element_by_css_selector(
                     "div.overlay.correct").find_element_by_xpath("..").find_element_by_css_selector(
                     "div.ma-4.flex.flex-center-xs.flex-middle-xs.primary-color-bg.green-500-bg").text
-                print("Objective Answer Found")
+                self.root.log(logging.INFO, "Objective Answer Found for " + str(question_url))
             except Exception as e:
-                print("WARNING!! Answer Could not be Obtained", e)
-                self.print_url(question_url)
+                self.root.error("Answer Could not be Obtained at " + str(question_url) + "\nCause: " + str(e))
                 return False
 
         if not subjective:
             top = self.driver.find_element_by_css_selector(
-                    "div.overlay.correct").find_element_by_xpath("..").find_element_by_xpath("..")
+                "div.overlay.correct").find_element_by_xpath("..").find_element_by_xpath("..")
             try:
                 options = top.find_elements_by_css_selector(
                     "div.pa-4>span.mjx-chtml.MathJax_CHTML")
                 if len(options) == 0:
                     raise Exception
                 options = [option.get_attribute("innerHTML") for option in options]
-                print("MathXML Options Found")
+                self.root.log(logging.INFO, "MathXML Options Obtained at " + str(question_url))
             except Exception as e:
                 try:
                     options = top.find_elements_by_css_selector(
                         "div.pa-4>img")
                     options = [option.get_attribute("src") for option in options]
-                    print("No MathXML options found", e)
+                    self.root.log(logging.INFO,
+                                  "No MathXML Options Obtained at " + str(question_url) + "\nCause: " + str(e))
                     if len(options) == 0:
                         raise Exception
-                    print("Obtained Image options")
-                    self.print_url(question_url)
+                    self.root.log(logging.INFO, "Image Options Obtained at " + str(question_url))
                 except Exception as e:
                     try:
                         options = top.find_elements_by_css_selector(
                             "div.pa-4")
                         options = [option.text for option in options]
-                        print("No MathXML or Image Options Found", e)
-                        print("Obtained Textual options")
-                        self.print_url(question_url)
+                        self.root.log(logging.INFO, "No MathXML or Image Options Found at " +
+                                      str(question_url) +
+                                      "\nCause: " + str(e) + "\nObtained Textual options Instead")
                     except Exception as e:
                         options = []
-                        print("WARNING!! No options found", e)
-                        self.print_url(question_url)
+                        self.root.warning("WARNING!! No options found at " + str(question_url) + "\nCause: " + str(e))
 
         scraped_data = {
             "question_meta": meta,
             "question": question,
-            #"diagram": diagram,
+            # "diagram": diagram,
             "options": options,
             "answer": answer
         }
