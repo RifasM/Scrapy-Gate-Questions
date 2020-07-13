@@ -1,3 +1,4 @@
+import time
 import urllib
 import os
 import signal
@@ -101,3 +102,4 @@ class GateSpider(scrapy.Spider):
             "questions": links
         }
         self.db.questions.insert_one(data)
+        time.sleep(1)
