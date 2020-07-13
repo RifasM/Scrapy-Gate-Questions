@@ -11,21 +11,25 @@ import pymongo
 
 class GateSpider(scrapy.Spider):
     name = 'gate'
-    allowed_domains = ['questions.examside.com']
-    start_urls = [
-        "https://questions.examside.com",
-    ]
-    interesting_url = re.compile("https://questions.examside.com"
-                                 "/past-years/gate/"
-                                 "question/[\\w-]+.htm")
+    allowed_domains = []
+    start_urls = []
 
-    selenium_instance = GateSelenium()
+    def __init__(self, *args, **kwargs):
+        super().__init__(self, *args, **kwargs)
+        self.allowed_domains.append('questions.examside.com')
+        self.start_urls.append("https://questions.examside.com")
 
-    client = pymongo.MongoClient(
-        "mongodb+srv://"+os.environ["MONGO_USER"]+":"
-        + urllib.parse.quote_plus(os.environ["MONGO_PASSWORD"]) +
-        "@"+os.environ["MONGO_HOST"]+"/gate?retryWrites=true&w=majority")
-    db = client.gate
+        self.interesting_url = re.compile("https://questions.examside.com"
+                                          "/past-years/gate/"
+                                          "question/[\\w-]+.htm")
+
+        self.selenium_instance = GateSelenium()
+
+        client = pymongo.MongoClient(
+            "mongodb+srv://" + os.environ["MONGO_USER"] + ":"
+            + urllib.parse.quote_plus(os.environ["MONGO_PASSWORD"]) +
+            "@" + os.environ["MONGO_HOST"] + "/gate?retryWrites=true&w=majority")
+        self.db = client.gate
 
     def parse(self, response):
         for course in response.css("div.pa-8-top"):
